@@ -1,0 +1,1322 @@
+<!DOCTYPE html>
+<!--
+=====================================================================
+  EL GUARDIÁN · Versión 2
+=====================================================================
+  Una sola página, sin servidor. Todo se revisa en el mismo
+  navegador de quien la usa. Nada de lo que pega la persona se envía
+  a ningún lado.
+
+  Qué hace:
+    • Analiza un enlace o un mensaje completo.
+    • Da una calificación en 4 niveles: Seguro, Ten cuidado,
+      Sospechoso y Peligroso.
+    • Explica en palabras simples por qué.
+    • Compara los dominios con sitios oficiales para detectar
+      letras cambiadas (por ejemplo, facebok.com).
+    • Tiene una lista de sitios oficiales y una guía corta.
+    • Botones para copiar el enlace oficial y compartir la advertencia.
+
+  Qué NO hace todavía (requiere un servidor):
+    • Revisar la fecha en que se creó el dominio.
+    • Revisar el certificado de seguridad del sitio.
+    • Recibir reportes de otras personas.
+
+  Estructura del archivo:
+    1. <head>   → datos de la página y estilos
+    2. <body>   → lo que se ve
+    3. <script> → la lógica, dividida en pasos numerados
+
+  Los comentarios que dicen "NOTA" explican el porqué de algo.
+=====================================================================
+-->
+<html lang="es-MX">
+<head>
+  <!-- ==========================================================
+       SECCIÓN 1 · DATOS DE LA PÁGINA Y ESTILOS
+       ========================================================== -->
+  <meta charset="UTF-8">
+
+  <!-- NOTA: "viewport" adapta la página al tamaño del celular.
+       Sin esta línea, el celular la muestra diminuta. -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+
+  <title>El Guardián · Revisa antes de entrar</title>
+  <meta name="description" content="Revisa si un enlace o un mensaje parece engaño antes de dar clic o compartir datos.">
+  <meta name="theme-color" content="#0f1a33">
+  <meta name="color-scheme" content="dark light">
+
+  <!-- NOTA (Apple): estas etiquetas hacen que se vea bien al guardar la página
+       en la pantalla de inicio del iPhone o iPad, y evitan que Safari convierta
+       números en enlaces de llamada. -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="El Guardián">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="format-detection" content="telephone=no">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+
+  <meta property="og:title" content="El Guardián · Revisa antes de entrar">
+  <meta property="og:description" content="Revisa si un enlace o un mensaje parece engaño.">
+  <meta property="og:type" content="website">
+
+  <!-- Ícono de la pestaña: un escudo hecho con texto, sin archivos extra. -->
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%9B%A1%EF%B8%8F%3C/text%3E%3C/svg%3E">
+
+  <style>
+    /* ----- 1.1 · COLORES ------------------------------------------
+       NOTA: se cambian aquí, en un solo lugar. */
+    :root {
+      --bg: #0f1a33;
+      --card: #16213e;
+      --card-2: #1c2a4d;
+      --texto: #f5f7fb;
+      --suave: #aab4cc;
+      --borde: #2c3d66;
+      --campo: #0d1730;
+      --acento: #00d9ff;
+      --acento-hover: #5ae6ff;
+      --acento-txt: #00121f;
+
+      /* Colores de los 4 niveles de calificación */
+      --seguro: #3fbf6e;
+      --cuidado: #ffc04d;
+      --sospechoso: #ff8a3d;
+      --peligroso: #f0504f;
+
+      color-scheme: dark;
+    }
+
+    /* NOTA: si el celular está en modo claro, la página cambia sola. */
+    @media (prefers-color-scheme: light) {
+      :root {
+        --bg: #f2f6fb;
+        --card: #ffffff;
+        --card-2: #eef3fa;
+        --texto: #1a1f36;
+        --suave: #5b6780;
+        --borde: #d5deeb;
+        --campo: #ffffff;
+        --acento: #0077b6;
+        --acento-hover: #005f91;
+        --acento-txt: #ffffff;
+        --seguro: #2e9d57;
+        --cuidado: #b58100;
+        --sospechoso: #c25a12;
+        --peligroso: #d13b3b;
+        color-scheme: light;
+      }
+    }
+
+    /* ----- 1.2 · REGLAS GENERALES ---------------------------------- */
+    /* NOTA: "box-sizing" hace que el relleno no agrande los cuadros. */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html { height: 100%; }
+
+    body {
+      min-height: 100%;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+      font-size: 16px;
+      line-height: 1.6;
+      color: var(--texto);
+      background: var(--bg);
+      -webkit-text-size-adjust: 100%;
+      padding-top: env(safe-area-inset-top, 0px);
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+    }
+
+    /* NOTA: "[hidden]" oculta algo aunque otra regla intente mostrarlo. */
+    [hidden] { display: none !important; }
+
+    /* NOTA: el contenedor limita el ancho en computadoras para que
+       el texto no se estire demasiado. */
+    .contenedor {
+      width: 100%;
+      max-width: 880px;
+      margin: 0 auto;
+      padding: 0 16px;
+    }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip: rect(0 0 0 0);
+      white-space: nowrap;
+    }
+
+    /* ----- 1.3 · ENCABEZADO ---------------------------------------- */
+    .encabezado {
+      background: linear-gradient(135deg, #0f1a33 0%, #16213e 60%, #0b3d5c 100%);
+      color: #f5f7fb;
+      text-align: center;
+      padding: 36px 16px 64px;
+    }
+
+    .encabezado .escudo {
+      font-size: clamp(42px, 9vw, 60px);
+      line-height: 1;
+    }
+
+    .encabezado h1 {
+      margin-top: 8px;
+      font-size: clamp(28px, 6vw, 40px);
+      color: #00d9ff;
+    }
+
+    .encabezado p {
+      margin-top: 6px;
+      font-size: clamp(15px, 3.6vw, 18px);
+      color: #c4cde0;
+    }
+
+    /* ----- 1.4 · PESTAÑAS (menú de arriba) ------------------------- */
+    /* NOTA: la barra de pestañas se "pega" arriba al hacer scroll. */
+    .pestanas {
+      position: sticky;
+      top: env(safe-area-inset-top, 0px);   /* NOTA (Apple): la barra no se mete bajo la hora y el notch del iPhone */
+      z-index: 10;
+      margin-top: -28px;
+      background: var(--card);
+      border: 1px solid var(--borde);
+      border-radius: 14px;
+      padding: 6px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+    }
+
+    .pestana {
+      min-height: 48px;
+      padding: 8px 6px;
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--suave);
+      background: transparent;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+
+    .pestana[aria-selected="true"] {
+      color: var(--acento-txt);
+      background: var(--acento);
+    }
+
+    .pestana:focus-visible,
+    .boton:focus-visible,
+    .chip:focus-visible,
+    .campo:focus-visible,
+    a:focus-visible {
+      outline: 3px solid var(--acento);
+      outline-offset: 2px;
+    }
+
+    /* ----- 1.5 · TARJETAS Y TÍTULOS -------------------------------- */
+    .seccion {
+      margin-top: 24px;
+    }
+
+    .tarjeta {
+      background: var(--card);
+      border: 1px solid var(--borde);
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.14);
+    }
+
+    .tarjeta h2 {
+      font-size: clamp(19px, 4.5vw, 22px);
+      margin-bottom: 8px;
+    }
+
+    .ayuda {
+      color: var(--suave);
+      font-size: 15px;
+    }
+
+    /* ----- 1.6 · CAMPO DE TEXTO Y BOTONES -------------------------- */
+    .campo {
+      -webkit-appearance: none;     /* NOTA (Apple): quita el estilo por defecto de Safari */
+      appearance: none;
+      width: 100%;
+      padding: 14px 16px;
+      font-size: 16px;          /* NOTA: 16px evita el zoom automático del celular al escribir */
+      font-family: inherit;
+      color: var(--texto);
+      background: var(--campo);
+      border: 1px solid var(--borde);
+      border-radius: 12px;
+      outline: none;
+      resize: vertical;
+    }
+
+    .campo::placeholder { color: var(--suave); opacity: 0.85; }
+
+    .campo:focus {
+      border-color: var(--acento);
+      box-shadow: 0 0 0 3px rgba(0, 217, 255, 0.22);
+    }
+
+    .fila-botones {
+      display: grid;
+      gap: 10px;
+      grid-template-columns: 1fr;   /* NOTA: en celular, un botón debajo del otro */
+      margin-top: 12px;
+    }
+
+    .boton {
+      -webkit-appearance: none;
+      appearance: none;
+      touch-action: manipulation;   /* NOTA (Apple): el toque responde al instante, sin esperar */
+      min-height: 52px;             /* NOTA: 44px o más es cómodo para tocar con el dedo */
+      padding: 12px 18px;
+      font-size: 16px;
+      font-weight: 700;
+      font-family: inherit;
+      text-align: center;
+      text-decoration: none;
+      color: var(--acento-txt);
+      background: var(--acento);
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    /* NOTA (Apple): "hover" solo aplica con mouse o trackpad.
+       En iPhone y iPad, un toque dejaba el botón con el color de hover. */
+    @media (hover: hover) {
+      .boton:hover { background: var(--acento-hover); }
+    }
+
+    .boton.secundario {
+      color: var(--texto);
+      background: var(--card-2);
+      border: 1px solid var(--borde);
+    }
+
+    @media (hover: hover) {
+      .boton.secundario:hover { border-color: var(--acento); }
+    }
+
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 14px;
+      align-items: center;
+      font-size: 14px;
+      color: var(--suave);
+    }
+
+    .chip {
+      min-height: 36px;
+      padding: 6px 12px;
+      font-size: 14px;
+      font-family: inherit;
+      color: var(--texto);
+      background: transparent;
+      border: 1px solid var(--borde);
+      border-radius: 999px;
+      cursor: pointer;
+    }
+
+    @media (hover: hover) {
+      .chip:hover { border-color: var(--acento); color: var(--acento); }
+    }
+
+    /* NOTA (Apple/Android): en pantallas táctiles, las etiquetas de ejemplo
+       ocupan al menos 44 px de alto para tocarlas con el dedo. */
+    @media (pointer: coarse) {
+      .chip { min-height: 44px; padding: 10px 14px; }
+      .pestana { min-height: 52px; }
+    }
+
+    /* ----- 1.7 · ESCALA DE CALIFICACIÓN (los 4 niveles) ------------ */
+    /* NOTA: en celular, los niveles se acomodan en 2 columnas;
+       en computadora, en una sola fila. */
+    .escala {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+      margin-top: 14px;
+    }
+
+    .nivel {
+      padding: 10px 8px;
+      font-size: 14px;
+      font-weight: 700;
+      text-align: center;
+      border: 2px solid transparent;
+      border-radius: 10px;
+      background: var(--card-2);
+      color: var(--suave);
+      opacity: 0.55;               /* NOTA: los que no aplican se ven apagados */
+      transition: opacity 0.2s ease;
+    }
+
+    .nivel.activo { opacity: 1; color: var(--texto); }
+    .nivel[data-nivel="seguro"].activo     { border-color: var(--seguro); }
+    .nivel[data-nivel="cuidado"].activo    { border-color: var(--cuidado); }
+    .nivel[data-nivel="sospechoso"].activo { border-color: var(--sospechoso); }
+    .nivel[data-nivel="peligroso"].activo  { border-color: var(--peligroso); }
+
+    /* ----- 1.8 · RESULTADO ----------------------------------------- */
+    .resultado {
+      margin-top: 16px;
+      padding: 18px;
+      border-radius: 14px;
+      border: 2px solid var(--borde);
+      background: var(--card-2);
+    }
+
+    .resultado.seguro     { border-color: var(--seguro); }
+    .resultado.cuidado    { border-color: var(--cuidado); }
+    .resultado.sospechoso { border-color: var(--sospechoso); }
+    .resultado.peligroso  { border-color: var(--peligroso); }
+
+    .resultado h3 {
+      font-size: clamp(19px, 4.5vw, 22px);
+    }
+
+    .resultado .explicacion {
+      margin-top: 6px;
+      font-size: 15px;
+    }
+
+    .resultado .revisado {
+      margin-top: 8px;
+      font-size: 13px;
+      color: var(--suave);
+      word-break: break-all;      /* NOTA: corta enlaces largos para que no salgan de la pantalla */
+    }
+
+    .resultado h4 {
+      margin-top: 16px;
+      font-size: 16px;
+    }
+
+    .resultado ul {
+      list-style: none;
+      margin-top: 6px;
+    }
+
+    .resultado li {
+      font-size: 15px;
+      padding: 9px 0;
+      border-top: 1px solid var(--borde);
+    }
+
+    .acciones {
+      margin-top: 16px;
+    }
+
+    .aviso-copiado {
+      margin-top: 10px;
+      font-size: 14px;
+      color: var(--seguro);
+    }
+
+    /* ----- 1.9 · SITIOS OFICIALES ---------------------------------- */
+    .grupo {
+      margin-top: 20px;
+    }
+
+    .grupo h3 {
+      font-size: 17px;
+      margin-bottom: 10px;
+    }
+
+    .tarjetas {
+      display: grid;
+      gap: 12px;
+      grid-template-columns: 1fr;   /* NOTA: en celular, una tarjeta por fila */
+    }
+
+    .sitio {
+      background: var(--card-2);
+      border: 1px solid var(--borde);
+      border-radius: 14px;
+      padding: 16px;
+    }
+
+    .sitio strong { font-size: 16px; }
+
+    .sitio .dominio {
+      font-size: 14px;
+      color: var(--suave);
+      word-break: break-all;
+    }
+
+    .sitio .botones {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .sitio .botones .boton { min-height: 44px; font-size: 14px; padding: 8px; }
+
+    /* ----- 1.10 · GUÍA ---------------------------------------------- */
+    .regla {
+      display: grid;
+      grid-template-columns: 40px 1fr;
+      gap: 12px;
+      padding: 14px 0;
+      border-top: 1px solid var(--borde);
+    }
+
+    .regla:first-of-type { border-top: none; }
+
+    .regla .numero {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      font-weight: 700;
+      color: var(--acento-txt);
+      background: var(--acento);
+    }
+
+    .regla p { font-size: 15px; color: var(--suave); }
+    .regla strong { color: var(--texto); }
+
+    details.plegable {
+      margin-top: 16px;
+      background: var(--card-2);
+      border: 1px solid var(--borde);
+      border-radius: 12px;
+      padding: 12px 16px;
+    }
+
+    details.plegable summary {
+      cursor: pointer;
+      font-weight: 700;
+      min-height: 32px;
+    }
+
+    details.plegable p {
+      margin-top: 8px;
+      font-size: 14px;
+      color: var(--suave);
+    }
+
+    /* ----- 1.11 · PIE DE PÁGINA ----------------------------------- */
+    .pie {
+      margin-top: 36px;
+      padding: 20px 0 32px;
+      border-top: 1px solid var(--borde);
+      font-size: 13px;
+      color: var(--suave);
+      text-align: center;
+    }
+
+    .pie p + p { margin-top: 6px; }
+
+    /* ----- 1.12 · TAMAÑOS SEGÚN LA PANTALLA ----------------------- */
+    /* NOTA: "min-width" significa "a partir de este ancho". */
+
+    @media (min-width: 560px) {
+      .fila-botones {
+        grid-template-columns: 1fr 1fr;     /* dos botones lado a lado */
+      }
+      .escala {
+        grid-template-columns: repeat(4, 1fr);  /* los 4 niveles en una fila */
+      }
+      .tarjetas {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (min-width: 900px) {
+      .tarjetas {
+        grid-template-columns: repeat(3, 1fr);
+      }
+      .tarjeta { padding: 26px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      * { transition: none !important; }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- ==========================================================
+       SECCIÓN 2 · LO QUE SE VE (HTML)
+       ========================================================== -->
+
+  <!-- 2.1 · Encabezado -->
+  <header class="encabezado">
+    <div class="contenedor">
+      <div class="escudo" aria-hidden="true">🛡️</div>
+      <h1>El Guardián</h1>
+      <p>Revisa un enlace o un mensaje antes de dar clic o compartir datos</p>
+    </div>
+  </header>
+
+  <main class="contenedor">
+
+    <!-- 2.2 · Pestañas: cambian entre las tres pantallas -->
+    <nav class="pestanas" role="tablist" aria-label="Secciones">
+      <button class="pestana" role="tab" id="tab-analizar" aria-controls="pan-analizar" aria-selected="true">Analizar</button>
+      <button class="pestana" role="tab" id="tab-sitios" aria-controls="pan-sitios" aria-selected="false">Sitios oficiales</button>
+      <button class="pestana" role="tab" id="tab-guia" aria-controls="pan-guia" aria-selected="false">Guía</button>
+    </nav>
+
+    <!-- ========================================================
+         2.3 · PANTALLA 1: ANALIZAR
+         ======================================================== -->
+    <section id="pan-analizar" class="seccion" role="tabpanel" aria-labelledby="tab-analizar">
+      <div class="tarjeta">
+        <h2>¿Qué quieres revisar?</h2>
+        <p class="ayuda">Pega el enlace, o el mensaje completo que te llegó. Si el mensaje tiene enlaces, también los revisamos.</p>
+
+        <label for="entrada" class="sr-only">Enlace o mensaje a revisar</label>
+        <!-- NOTA: "textarea" permite pegar mensajes largos con varios renglones. -->
+        <textarea id="entrada" class="campo" rows="5"
+                  autocapitalize="none" autocorrect="off" autocomplete="off" spellcheck="false"
+                  placeholder="Ejemplo: https://facebok.com/login o el mensaje completo"></textarea>
+
+        <div class="fila-botones">
+          <button id="btnAnalizar" class="boton" type="button">🔍 Analizar</button>
+          <button id="btnLimpiar" class="boton secundario" type="button">Limpiar</button>
+        </div>
+
+        <!-- 2.4 · Ejemplos para practicar sin escribir -->
+        <div class="chips" aria-label="Ejemplos para probar">
+          <span>Prueba con:</span>
+          <button type="button" class="chip" data-ejemplo="urgente">Mensaje urgente</button>
+          <button type="button" class="chip" data-ejemplo="letras">Letras cambiadas</button>
+          <button type="button" class="chip" data-ejemplo="premio">Premio falso</button>
+          <button type="button" class="chip" data-ejemplo="real">Mensaje real</button>
+        </div>
+      </div>
+
+      <!-- 2.5 · Resultado: aparece después de analizar -->
+      <div id="resultado" class="tarjeta" hidden aria-live="polite">
+        <!-- Escala con los 4 niveles. El JavaScript marca el que corresponde. -->
+        <div class="escala" id="escala" aria-label="Calificación">
+          <div class="nivel" data-nivel="seguro">🟢 Seguro</div>
+          <div class="nivel" data-nivel="cuidado">🟡 Ten cuidado</div>
+          <div class="nivel" data-nivel="sospechoso">🟠 Sospechoso</div>
+          <div class="nivel" data-nivel="peligroso">🔴 Peligroso</div>
+        </div>
+
+        <div id="caja" class="resultado">
+          <h3 id="titulo"></h3>
+          <p class="explicacion" id="explicacion"></p>
+          <p class="revisado" id="revisado"></p>
+
+          <h4>¿Por qué?</h4>
+          <ul id="senales"></ul>
+        </div>
+
+        <!-- 2.6 · Botones de acción después del análisis -->
+        <div class="acciones fila-botones" id="acciones">
+          <button id="btnCopiarOficial" class="boton secundario" type="button" hidden>📋 Copiar enlace oficial</button>
+          <a id="btnCompartir" class="boton" href="#" target="_blank" rel="noopener noreferrer">📤 Compartir advertencia</a>
+        </div>
+        <p id="avisoCopiado" class="aviso-copiado" role="status" hidden></p>
+      </div>
+
+      <!-- 2.7 · Qué no revisa todavía: honestidad sobre los límites -->
+      <details class="plegable">
+        <summary>¿Qué NO revisa todavía esta herramienta?</summary>
+        <p>No revisa la fecha en que se creó el dominio ni el certificado de seguridad del sitio. Para eso se necesita un servidor, y se agregará después. Tampoco confirma si un mensaje realmente vino de quien dice ser.</p>
+      </details>
+    </section>
+
+    <!-- ========================================================
+         2.8 · PANTALLA 2: SITIOS OFICIALES
+         Las tarjetas se llenan con JavaScript, desde la lista SITIOS.
+         ======================================================== -->
+    <section id="pan-sitios" class="seccion" role="tabpanel" aria-labelledby="tab-sitios" hidden>
+      <div class="tarjeta">
+        <h2>Sitios oficiales</h2>
+        <p class="ayuda">Si necesitas entrar a un banco, una red social, una tienda o un trámite de gobierno, usa estos enlaces. Escríbelos tú mismo o cópialos desde aquí.</p>
+        <p class="ayuda" style="margin-top:8px;"><strong>Importante:</strong> esta lista se revisa a mano. Si algún enlace ya no funciona o cambió, no lo uses y confirma en la institución.</p>
+        <div id="listaSitios"></div>
+      </div>
+    </section>
+
+    <!-- ========================================================
+         2.9 · PANTALLA 3: GUÍA
+         ======================================================== -->
+    <section id="pan-guia" class="seccion" role="tabpanel" aria-labelledby="tab-guia" hidden>
+      <div class="tarjeta">
+        <h2>5 reglas para no caer</h2>
+        <p class="ayuda">Si recuerdas solo esto, ya te protege mucho.</p>
+
+        <div class="regla">
+          <div class="numero">1</div>
+          <div><strong>Nadie te pide tu contraseña por mensaje.</strong><p>Ni tu banco, ni una tienda, ni una dependencia de gobierno.</p></div>
+        </div>
+        <div class="regla">
+          <div class="numero">2</div>
+          <div><strong>Si te urge o te asusta, desconfía.</strong><p>La prisa es la herramienta favorita de los engañadores. Detente y respira.</p></div>
+        </div>
+        <div class="regla">
+          <div class="numero">3</div>
+          <div><strong>Entra tú mismo al sitio oficial.</strong><p>No des clic al enlace que te mandaron. Escribe la dirección o usa la app oficial.</p></div>
+        </div>
+        <div class="regla">
+          <div class="numero">4</div>
+          <div><strong>Si ganaste algo y te piden pagar, es mentira.</strong><p>Los premios reales no cobran para entregarse.</p></div>
+        </div>
+        <div class="regla">
+          <div class="numero">5</div>
+          <div><strong>Revisa el nombre real en la barra de direcciones.</strong><p>Fíjate letra por letra. Una letra cambiada ya es un engaño.</p></div>
+        </div>
+
+        <details class="plegable">
+          <summary>¿Qué es un enlace acortado?</summary>
+          <p>Es una dirección corta, como bit.ly/algo. Oculta a dónde lleva hasta que das clic. No es malo por sí mismo, pero en mensajes de desconocidos conviene desconfiar.</p>
+        </details>
+        <details class="plegable">
+          <summary>¿Qué significa "http" y "https"?</summary>
+          <p>La "s" significa que la conexión va cifrada. Un sitio que pide datos y no usa https es una mala señal. Aun así, un sitio con https también puede ser falso.</p>
+        </details>
+      </div>
+    </section>
+
+    <!-- 2.10 · Pie -->
+    <footer class="pie">
+      <p><strong>Aviso:</strong> esta herramienta usa reglas fijas y una lista corta de sitios. Puede equivocarse, así que úsala como una primera alerta, no como garantía.</p>
+      <p>Es una herramienta independiente. No está afiliada a ningún banco, empresa ni dependencia de gobierno.</p>
+      <p>Todo se revisa en tu navegador. No se guarda ni se envía lo que escribes.</p>
+    </footer>
+
+  </main>
+
+  <!-- ============================================================
+       SECCIÓN 3 · LÓGICA (JavaScript)
+       ------------------------------------------------------------
+       3.1 Lista de sitios oficiales y reglas de palabras
+       3.2 Funciones auxiliares
+       3.3 Revisar un enlace
+       3.4 Revisar el texto del mensaje
+       3.5 Dar la calificación final
+       3.6 Mostrar el resultado
+       3.7 Botones de acción (copiar y compartir)
+       3.8 Pestañas y ejemplos
+       3.9 Arranque
+       ============================================================ -->
+  <script>
+    'use strict';
+    // NOTA: "use strict" hace que JavaScript avise de errores comunes.
+
+
+    /* ---------- 3.1 · LISTAS DE REFERENCIA ----------------------
+       "dominios" son las direcciones oficiales. "clave" es el nombre
+       que buscamos dentro de un enlace para detectar imitaciones.
+       Si "clave" es null, solo se compara por parecido de letras. */
+    const SITIOS = [
+      // Bancos
+      { nombre: 'Banorte',   categoria: 'Bancos', clave: 'banorte',   url: 'https://www.banorte.com',       dominios: ['banorte.com'] },
+      { nombre: 'BBVA',      categoria: 'Bancos', clave: 'bbva',      url: 'https://www.bbva.mx',           dominios: ['bbva.mx', 'bbva.com'] },
+      { nombre: 'Santander', categoria: 'Bancos', clave: 'santander', url: 'https://www.santander.com.mx',  dominios: ['santander.com.mx'] },
+      { nombre: 'HSBC',      categoria: 'Bancos', clave: 'hsbc',      url: 'https://www.hsbc.com.mx',       dominios: ['hsbc.com.mx'] },
+      { nombre: 'Banamex',   categoria: 'Bancos', clave: 'banamex',   url: 'https://www.banamex.com',       dominios: ['banamex.com'] },
+
+      // Redes sociales y tecnología
+      { nombre: 'Facebook',  categoria: 'Redes y tecnología', clave: 'facebook',  url: 'https://www.facebook.com',  dominios: ['facebook.com', 'fb.com'] },
+      { nombre: 'Instagram', categoria: 'Redes y tecnología', clave: 'instagram', url: 'https://www.instagram.com', dominios: ['instagram.com'] },
+      { nombre: 'WhatsApp',  categoria: 'Redes y tecnología', clave: 'whatsapp',  url: 'https://www.whatsapp.com',  dominios: ['whatsapp.com'] },
+      { nombre: 'YouTube',   categoria: 'Redes y tecnología', clave: 'youtube',   url: 'https://www.youtube.com',   dominios: ['youtube.com', 'youtu.be'] },
+      { nombre: 'Google',    categoria: 'Redes y tecnología', clave: 'google',    url: 'https://www.google.com',    dominios: ['google.com', 'gmail.com'] },
+      { nombre: 'Apple',     categoria: 'Redes y tecnología', clave: 'apple',     url: 'https://www.apple.com',     dominios: ['apple.com', 'icloud.com'] },
+
+      // Tiendas
+      { nombre: 'Amazon México', categoria: 'Tiendas', clave: 'amazon',       url: 'https://www.amazon.com.mx',       dominios: ['amazon.com.mx'] },
+      { nombre: 'Mercado Libre', categoria: 'Tiendas', clave: 'mercadolibre', url: 'https://www.mercadolibre.com.mx', dominios: ['mercadolibre.com.mx'] },
+      { nombre: 'Liverpool',     categoria: 'Tiendas', clave: 'liverpool',    url: 'https://www.liverpool.com.mx',    dominios: ['liverpool.com.mx'] },
+      { nombre: 'Coppel',        categoria: 'Tiendas', clave: 'coppel',       url: 'https://www.coppel.com',          dominios: ['coppel.com'] },
+      { nombre: 'Soriana',       categoria: 'Tiendas', clave: 'soriana',      url: 'https://www.soriana.com',         dominios: ['soriana.com'] },
+
+      // Gobierno
+      { nombre: 'Gob.mx (trámites)', categoria: 'Gobierno', clave: null, url: 'https://www.gob.mx', dominios: ['gob.mx'] },
+      { nombre: 'SAT',               categoria: 'Gobierno', clave: null, url: 'https://www.sat.gob.mx', dominios: ['sat.gob.mx'] },
+      { nombre: 'INE',               categoria: 'Gobierno', clave: null, url: 'https://www.ine.mx',     dominios: ['ine.mx'] }
+    ];
+
+    // Servicios donde cualquiera puede crear páginas.
+    // Aunque el enlace termine en google.com, no siempre es Google.
+    const HOSPEDAJES = [
+      'sites.google.com', 'github.io', 'netlify.app', 'vercel.app', 'pages.dev', 'web.app',
+      'firebaseapp.com', 'blogspot.com', 'wixsite.com', 'weebly.com', 'glitch.me', 'replit.dev',
+      'repl.co', 'workers.dev', 'herokuapp.com', 'ngrok-free.app', 'ngrok.io', 'carrd.co', '000webhostapp.com'
+    ];
+
+    // Acortadores: ocultan a dónde lleva el enlace.
+    const ACORTADORES = [
+      'bit.ly', 'tinyurl.com', 't.co', 'goo.gl', 'ow.ly', 'is.gd', 'buff.ly', 'cutt.ly',
+      'rebrand.ly', 'shorturl.at', 'rb.gy', 'tiny.cc', 'lnkd.in'
+    ];
+
+    // Palabras que aparecen en enlaces de engaño (se comparan sin acentos y en minúsculas).
+    const PALABRAS_ENLACE = [
+      'login', 'signin', 'sign-in', 'iniciar', 'inicia', 'verifica', 'verificar', 'actualiza',
+      'actualizar', 'confirma', 'confirmar', 'contrasena', 'password', 'clave', 'cuenta', 'suspend',
+      'bloquead', 'urgente', 'premio', 'ganaste', 'reembolso', 'recupera', 'seguridad', 'secure',
+      'update', 'banco', 'wallet'
+    ];
+
+    // Palabras del MENSAJE, agrupadas por tipo de señal.
+    // Se comparan sin acentos y en minúsculas.
+    const SEÑALES_TEXTO = {
+      urgencia: ['urgente', 'hoy se vence', 'vence hoy', 'ultima hora', 'ultimo aviso', 'antes de 24 horas',
+                 'antes de 24 hrs', 'de inmediato', 'ahora mismo', 'hoy mismo'],
+      amenaza:  ['bloquearemos', 'sera bloqueada', 'sera bloqueado', 'suspendida', 'suspendido',
+                 'perderas', 'multa', 'demanda', 'arresto', 'embargo'],
+      promesa:  ['ganaste', 'felicidades', 'te regalamos', 'gratis', 'premio', 'herencia',
+                 'deposito pendiente', 'oferta unica'],
+      datos:    ['contrasena', 'nip', 'curp', 'rfc', 'cvv', 'numero de tarjeta', 'codigo de verificacion',
+                 'clave de acceso', 'token', 'confirma tus datos', 'escribe tus datos'],
+      secreto:  ['no le digas a nadie', 'no digas a nadie', 'no se lo digas', 'es secreto', 'confidencial'],
+      pago:     ['paga', 'pagar', 'transfiere', 'transferencia', 'deposita', 'envio de', 'tarifa']
+    };
+
+    // Textos de cada nivel de calificación.
+    const NIVELES = {
+      seguro: {
+        titulo: '🟢 Seguro',
+        explicacion: 'Es un sitio oficial conocido y no encontré señales de riesgo. Aun así, revisa que la dirección esté bien escrita.'
+      },
+      cuidado: {
+        titulo: '🟡 Ten cuidado',
+        explicacion: 'No encontré señales graves, pero no puedo confirmar que sea real. Si te piden algo, verifícalo por tu cuenta.'
+      },
+      sospechoso: {
+        titulo: '🟠 Sospechoso',
+        explicacion: 'Tiene varias señales de engaño. No respondas ni des clic hasta confirmarlo por tu propia cuenta.'
+      },
+      peligroso: {
+        titulo: '🔴 Peligroso',
+        explicacion: 'No entres ni compartas datos. Si llegó por mensaje o correo, bórralo y avisa a quien te lo mandó.'
+      }
+    };
+
+    // Íconos de cada señal: alto = peligro, medio = cuidado, bajo = dato, info = positivo.
+    const ICONOS = { alto: '🚩', medio: '⚠️', bajo: 'ℹ️', info: '✅' };
+
+    // Ejemplos para practicar sin escribir.
+    const EJEMPLOS = {
+      urgente: 'URGENTE: Tu cuenta será bloqueada HOY. Confirma tus datos aquí: https://mibanco-verifica-cuenta.com/acceso',
+      letras: 'https://facebok.com/login',
+      premio: '¡Felicidades! Ganaste un iPhone. Solo paga $50 de envío y no le digas a nadie.',
+      real: 'Tu estado de cuenta ya está disponible en la app oficial de tu banco. No te pediremos contraseñas por mensaje.'
+    };
+
+    // Último resultado, para poder compartirlo.
+    let ultimoResultado = null;
+
+
+    /* ---------- 3.2 · FUNCIONES AUXILIARES ----------------------- */
+
+    // Atajo para buscar un elemento por su id.
+    function $(id) {
+      return document.getElementById(id);
+    }
+
+    // Crea un elemento de forma segura.
+    // NOTA: usamos "textContent" y no "innerHTML". Así, lo que pega la persona
+    // nunca se ejecuta como código.
+    function crear(etiqueta, clase, texto) {
+      const e = document.createElement(etiqueta);
+      if (clase) e.className = clase;
+      if (texto !== undefined && texto !== null) e.textContent = texto;
+      return e;
+    }
+
+    // Quita acentos y pasa a minúsculas para comparar palabras sin errores.
+    function normalizarTexto(t) {
+      return t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    }
+
+    // ¿El dominio es exactamente el dominio, o un subdominio suyo?
+    // "mail.google.com" sí coincide con "google.com". "google.com.malo.net" no.
+    function dominioCoincide(host, dominio) {
+      return host === dominio || host.endsWith('.' + dominio);
+    }
+
+    // Convierte números que imitan letras: "faceb00k" → "facebook".
+    function normalizarDominio(host) {
+      const mapa = { '0': 'o', '1': 'l', '3': 'e', '4': 'a', '5': 's', '7': 't', '8': 'b' };
+      return host
+        .replace(/[-.]/g, '')
+        .replace(/rn/g, 'm')
+        .replace(/[0134578]/g, c => mapa[c]);
+    }
+
+    // Distancia de Levenshtein: cuántas letras hay que cambiar para pasar de una palabra a otra.
+    // Ejemplo: "facebok" → "facebook" necesita 1 cambio (agregar una "o").
+    function distancia(a, b) {
+      const m = a.length, n = b.length;
+      if (!m) return n;
+      if (!n) return m;
+      let anterior = Array.from({ length: n + 1 }, (_, j) => j);
+      for (let i = 1; i <= m; i++) {
+        const actual = [i];
+        for (let j = 1; j <= n; j++) {
+          const costo = a[i - 1] === b[j - 1] ? 0 : 1;
+          actual[j] = Math.min(anterior[j] + 1, actual[j - 1] + 1, anterior[j - 1] + costo);
+        }
+        anterior = actual;
+      }
+      return anterior[n];
+    }
+
+    // Busca en el texto todos los enlaces (empiezan con http, https o www).
+    function extraerEnlaces(texto) {
+      const encontrados = texto.match(/(https?:\/\/[^\s]+|www\.[^\s]+)/gi) || [];
+      // Quita signos de puntuación pegados al final (por ejemplo, un punto o una coma).
+      return encontrados.map(e => e.replace(/[.,;:!?)]+$/, '')).slice(0, 5);
+    }
+
+    // Convierte el texto en una dirección que el navegador pueda leer.
+    function leerEnlace(texto) {
+      let t = texto.trim();
+      if (!/^[a-z][a-z0-9+.-]*:\/\//i.test(t)) t = 'https://' + t;
+      try {
+        return new URL(t);
+      } catch (e) {
+        return null;
+      }
+    }
+
+
+    /* ---------- 3.3 · REVISAR UN ENLACE -------------------------- */
+
+    // Devuelve una lista de señales y, si aplica, el sitio oficial con el que se parece.
+    function revisarEnlace(url) {
+      const hallazgos = [];
+      const agregar = (nivel, texto) => hallazgos.push({ nivel, texto });
+
+      const host = url.hostname.toLowerCase().replace(/\.$/, '');
+      const base = host.replace(/^www\./, '');
+      const ruta = normalizarTexto(url.pathname + url.search + url.hash);
+
+      // REGLA 1 · Protocolo: solo páginas web normales son esperables.
+      if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+        agregar('alto', `Usa un protocolo que no es de páginas web (${url.protocol}). No lo abras.`);
+      } else if (url.protocol === 'http:') {
+        // REGLA 2 · Sin cifrar.
+        agregar('medio', 'No usa conexión cifrada (http). Lo que escribas podría viajar sin protección.');
+      }
+
+      // REGLA 3 · Truco con "@": lo que va antes es solo texto; el sitio real va después.
+      if (url.username || url.password) {
+        agregar('alto', 'Tiene un "@" antes del dominio. Es un truco para hacer creer que el enlace va a otro sitio.');
+      }
+
+      // REGLA 4 · Dirección numérica en vez de nombre.
+      const esIP = /^\d{1,3}(\.\d{1,3}){3}$/.test(host) || host.startsWith('[');
+      if (esIP) {
+        agregar('alto', 'Usa una dirección numérica en lugar de un nombre de sitio.');
+      }
+
+      // REGLA 5 · Clasificar el dominio.
+      const esHospedaje = HOSPEDAJES.some(h => dominioCoincide(host, h));
+      const esAcortador = ACORTADORES.some(a => dominioCoincide(host, a));
+      // NOTA: si es hospedaje (como sites.google.com), NO lo contamos como Google oficial.
+      const sitioOficial = esHospedaje ? null
+        : SITIOS.find(s => s.dominios.some(d => dominioCoincide(host, d))) || null;
+      const oficial = !!sitioOficial;
+
+      if (oficial) {
+        agregar('info', `Dominio oficial de ${sitioOficial.nombre}.`);
+      }
+
+      // REGLA 6 · Palabras de engaño en el enlace (no se revisan en sitios oficiales).
+      const palabras = PALABRAS_ENLACE.filter(p => (normalizarTexto(host) + ruta).includes(p));
+      if (!oficial && palabras.length) {
+        agregar(palabras.length >= 2 ? 'alto' : 'medio',
+          `Tiene palabras que se usan mucho en engaños: ${palabras.slice(0, 4).join(', ')}.`);
+      }
+
+      // REGLA 7 · Imitar una marca conocida escondiéndola en el nombre.
+      // Ejemplo: "faceb00k-login.com" esconde "facebook".
+      let sitioImitado = null;
+      if (!oficial && !esHospedaje) {
+        const normal = normalizarDominio(base);
+        sitioImitado = SITIOS.find(s => s.clave && normal.includes(s.clave)) || null;
+        if (sitioImitado) {
+          // Si además tiene números disfrazados o palabras de engaño, es más grave.
+          const muySospechoso = /[0134578]/.test(base) || palabras.length > 0 || base.includes('xn--');
+          agregar(muySospechoso ? 'alto' : 'medio',
+            `El nombre incluye "${sitioImitado.nombre}", pero no es su dominio oficial. Los oficiales son: ${sitioImitado.dominios.join(', ')}.`);
+        }
+      }
+
+      // REGLA 8 · Letras cambiadas: "facebok.com" en vez de "facebook.com".
+      // NOTA: solo comparamos dominios de largo suficiente, para evitar falsas alarmas.
+      if (!oficial && !sitioImitado && base.length >= 8) {
+        let mejor = null;
+        SITIOS.forEach(s => s.dominios.forEach(d => {
+          if (d.length < 8) return;
+          const dist = distancia(base, d);
+          if (dist >= 1 && dist <= 2 && (!mejor || dist < mejor.dist)) {
+            mejor = { sitio: s, dominio: d, dist };
+          }
+        }));
+        if (mejor) {
+          sitioImitado = mejor.sitio;
+          agregar(mejor.dist === 1 ? 'alto' : 'medio',
+            `Se parece mucho a "${mejor.dominio}" pero está escrito distinto. Puede ser un engaño con una letra cambiada.`);
+        }
+      }
+
+      // REGLA 9 · Acortadores y páginas gratuitas.
+      if (esAcortador) {
+        agregar('medio', 'Es un acortador de enlaces: no se ve a dónde lleva hasta que das clic.');
+      }
+      if (esHospedaje) {
+        agregar('medio', 'Está en un servicio de páginas gratuitas, donde cualquiera puede crear un sitio.');
+      }
+
+      // REGLA 10 · La palabra "gob" en un dominio que no es gob.mx.
+      if (!oficial && base.includes('gob')) {
+        agregar('medio', 'Usa la palabra "gob", pero no es un dominio gob.mx. Los trámites del gobierno van en gob.mx.');
+      }
+
+      // REGLA 11 · Forma rara del dominio.
+      if (base.includes('xn--')) {
+        agregar('medio', 'Usa caracteres especiales que pueden imitar letras normales.');
+      }
+      if ((base.match(/-/g) || []).length >= 3) {
+        agregar('medio', 'Tiene muchos guiones, algo común en páginas falsas.');
+      }
+      if (base.length > 30 && !oficial) {
+        agregar('medio', 'El nombre del dominio es muy largo. Los engaños suelen esconder marcas en nombres largos.');
+      }
+
+      return { hallazgos, oficial: sitioOficial, imitado: sitioImitado, host };
+    }
+
+
+    /* ---------- 3.4 · REVISAR EL TEXTO DEL MENSAJE --------------- */
+
+    // Busca palabras de urgencia, amenazas, promesas, datos privados, secretos y pagos.
+    // Frases que NIEGAN que se pidan datos, por ejemplo: "No te pediremos contraseñas".
+    // NOTA: si una oración dice eso, no la contamos como petición de datos.
+    const NEGACIONES = /(no te (pediremos|pediran|pedimos|pedira|solicitamos)|nunca te (pediremos|pediran|pedira)|nadie te (pedira|pide)|ninguna institucion|no solicitamos|no pediremos)/;
+
+    function revisarTexto(texto) {
+      const hallazgos = [];
+      // Quitamos las oraciones que niegan pedir datos antes de buscar señales.
+      const oraciones = texto.split(/[.!?\n]+/).filter(o => !NEGACIONES.test(normalizarTexto(o)));
+      const t = normalizarTexto(oraciones.join('. '));
+      const encontrado = grupo => SEÑALES_TEXTO[grupo].filter(p => t.includes(p));
+
+      const datos = encontrado('datos');
+      const secreto = encontrado('secreto');
+      const promesa = encontrado('promesa');
+      const pago = encontrado('pago');
+      const urgencia = encontrado('urgencia');
+      const amenaza = encontrado('amenaza');
+
+      // Peticiones de datos privados: la señal más grave.
+      if (datos.length) {
+        agregar('alto', `Pide datos privados (${datos.slice(0, 3).join(', ')}). Ninguna institución seria los pide por mensaje.`);
+      }
+
+      // Pedir que no le digas a nadie: otra señal muy clara de engaño.
+      if (secreto.length) {
+        agregar('alto', 'Te pide que no le digas a nadie. Eso es una señal clásica de engaño.');
+      }
+
+      // Promesa de premio combinada con pago: estafa común.
+      if (promesa.length && pago.length) {
+        agregar('alto', 'Te promete algo y al mismo tiempo te pide pagar. Es una estafa muy común.');
+      } else if (promesa.length) {
+        agregar('medio', `Hace promesas de premio o regalo (${promesa.slice(0, 2).join(', ')}). Desconfía de lo que parece demasiado bueno.`);
+      }
+
+      if (pago.length && !promesa.length) {
+        agregar('medio', 'Te pide transferir o pagar. Verifica antes de enviar dinero.');
+      }
+
+      if (amenaza.length) {
+        agregar('medio', `Usa amenazas (${amenaza.slice(0, 2).join(', ')}) para que actúes con miedo.`);
+      }
+
+      if (urgencia.length) {
+        agregar('medio', `Usa urgencia (${urgencia.slice(0, 2).join(', ')}) para que no pienses con calma.`);
+      }
+
+      function agregar(nivel, texto) {
+        hallazgos.push({ nivel, texto });
+      }
+
+      return hallazgos;
+    }
+
+
+    /* ---------- 3.5 · CALIFICACIÓN FINAL ------------------------- */
+
+    // Junta todas las señales y decide uno de los cuatro niveles.
+    function calificar(hallazgos, huboEnlaceOficial) {
+      const altos = hallazgos.filter(h => h.nivel === 'alto').length;
+      const medios = hallazgos.filter(h => h.nivel === 'medio').length;
+
+      if (altos > 0) return 'peligroso';
+      if (medios >= 2) return 'sospechoso';
+      if (medios === 1) return 'cuidado';
+      if (huboEnlaceOficial) return 'seguro';
+      return 'cuidado';   // sin señales, pero tampoco podemos confirmar que sea real
+    }
+
+
+    /* ---------- 3.6 · ANALIZAR TODO Y MOSTRAR EL RESULTADO --------- */
+
+    function analizarEntrada(entrada) {
+      const texto = entrada.trim();
+      if (!texto) {
+        return { error: 'Pega un enlace o un mensaje primero.' };
+      }
+
+      let hallazgos = [];
+      let huboOficial = false;
+      let sugerido = null;
+      const enlacesRevisados = [];
+
+      // Paso A: revisar cada enlace encontrado.
+      const enlaces = extraerEnlaces(texto);
+      enlaces.forEach(textoEnlace => {
+        const url = leerEnlace(textoEnlace);
+        if (!url) {
+          hallazgos.push({ nivel: 'medio', texto: `No pude leer este enlace: "${textoEnlace}".` });
+          return;
+        }
+        const r = revisarEnlace(url);
+        enlacesRevisados.push(r.host);
+        r.hallazgos.forEach(h => hallazgos.push({ nivel: h.nivel, texto: h.texto, enlace: r.host }));
+        if (r.oficial) huboOficial = true;
+        if (!sugerido && r.imitado) sugerido = r.imitado;
+      });
+
+      // Paso B: revisar el texto del mensaje (sin los enlaces, para no repetir señales).
+      const soloTexto = enlaces.reduce((acc, e) => acc.replace(e, ' '), texto);
+      revisarTexto(soloTexto).forEach(h => hallazgos.push(h));
+
+      // Paso C: si no hubo enlaces ni texto con señales, no hay nada más que decir.
+      const nivel = calificar(hallazgos, huboOficial);
+
+      return { nivel, hallazgos, enlacesRevisados, sugerido, texto };
+    }
+
+    function mostrarResultado(r) {
+      ultimoResultado = r;
+      const info = NIVELES[r.nivel];
+
+      // Resalta el nivel correspondiente en la escala.
+      document.querySelectorAll('.nivel').forEach(n => {
+        n.classList.toggle('activo', n.dataset.nivel === r.nivel);
+      });
+
+      // Colorea la caja del resultado.
+      const caja = $('caja');
+      caja.className = 'resultado ' + r.nivel;
+
+      $('titulo').textContent = info.titulo;
+      $('explicacion').textContent = info.explicacion;
+
+      $('revisado').textContent = r.enlacesRevisados.length
+        ? 'Enlaces revisados: ' + r.enlacesRevisados.join(', ')
+        : 'No encontré enlaces en lo que pegaste. Solo revisé el texto.';
+
+      // Lista de señales.
+      const lista = $('senales');
+      lista.replaceChildren();
+      if (!r.hallazgos.length) {
+        lista.append(crear('li', null, 'No encontré señales de engaño.'));
+      } else {
+        r.hallazgos.forEach(h => {
+          const prefijo = h.enlace ? `(${h.enlace}) ` : '';
+          lista.append(crear('li', null, `${ICONOS[h.nivel] || '•'} ${prefijo}${h.texto}`));
+        });
+      }
+
+      // Botón "copiar enlace oficial": solo aparece si sabemos a qué sitio se parece.
+      const btnCopiar = $('btnCopiarOficial');
+      if (r.sugerido) {
+        btnCopiar.hidden = false;
+        btnCopiar.dataset.url = r.sugerido.url;
+        btnCopiar.textContent = `📋 Copiar enlace oficial de ${r.sugerido.nombre}`;
+      } else {
+        btnCopiar.hidden = true;
+        btnCopiar.dataset.url = '';
+      }
+
+      // Enlace para compartir advertencia por WhatsApp (no necesita servidor).
+      const mensajeCompartir =
+        `⚠️ Revisé un mensaje con El Guardián. Resultado: ${info.titulo.replace(/^\S+\s/, '')}. ` +
+        'Antes de dar clic en enlaces sospechosos, revísalos primero.';
+      $('btnCompartir').href = 'https://wa.me/?text=' + encodeURIComponent(mensajeCompartir);
+
+      $('avisoCopiado').hidden = true;
+      $('resultado').hidden = false;
+      $('resultado').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function analizar() {
+      const entrada = $('entrada').value;
+      const r = analizarEntrada(entrada);
+      if (r.error) {
+        mostrarError(r.error);
+        return;
+      }
+      mostrarResultado(r);
+    }
+
+    function mostrarError(texto) {
+      $('resultado').hidden = false;
+      $('caja').className = 'resultado cuidado';
+      $('titulo').textContent = 'Falta algo';
+      $('explicacion').textContent = texto;
+      $('revisado').textContent = '';
+      $('senales').replaceChildren();
+      $('btnCopiarOficial').hidden = true;
+      $('btnCompartir').href = '#';
+      document.querySelectorAll('.nivel').forEach(n => n.classList.remove('activo'));
+    }
+
+
+    /* ---------- 3.7 · BOTONES DE ACCIÓN -------------------------- */
+
+    // Copia un texto al portapapeles. Si el navegador no lo permite, usa un respaldo.
+    async function copiarTexto(texto) {
+      try {
+        await navigator.clipboard.writeText(texto);
+        return true;
+      } catch (e) {
+        // NOTA (Apple): en iPhone y iPad, area.select() no siempre selecciona.
+        // Por eso se usa un rango y setSelectionRange, y el campo es de solo lectura
+        // para que no aparezca el teclado.
+        const area = document.createElement('textarea');
+        area.value = texto;
+        area.setAttribute('readonly', '');
+        area.style.position = 'fixed';
+        area.style.left = '-9999px';
+        document.body.append(area);
+        try {
+          const rango = document.createRange();
+          rango.selectNodeContents(area);
+          const seleccion = window.getSelection();
+          seleccion.removeAllRanges();
+          seleccion.addRange(rango);
+          area.setSelectionRange(0, texto.length);
+          return document.execCommand('copy');
+        } catch (err) {
+          return false;
+        } finally {
+          area.remove();
+        }
+      }
+    }
+
+    function avisar(texto) {
+      const p = $('avisoCopiado');
+      p.textContent = texto;
+      p.hidden = false;
+    }
+
+    $('btnCopiarOficial').addEventListener('click', async () => {
+      const url = $('btnCopiarOficial').dataset.url;
+      if (!url) return;
+      const ok = await copiarTexto(url);
+      avisar(ok ? '✅ Enlace oficial copiado. Pégalo tú en tu navegador.' : 'No pude copiarlo. Escribe tú mismo: ' + url);
+    });
+
+
+    /* ---------- 3.8 · PESTAÑAS, SITIOS Y EJEMPLOS ---------------- */
+
+    // Cambia entre Analizar, Sitios oficiales y Guía.
+    function mostrarPestana(nombre) {
+      ['analizar', 'sitios', 'guia'].forEach(p => {
+        const activa = p === nombre;
+        $('tab-' + p).setAttribute('aria-selected', activa ? 'true' : 'false');
+        $('pan-' + p).hidden = !activa;
+      });
+    }
+
+    ['analizar', 'sitios', 'guia'].forEach(p => {
+      $('tab-' + p).addEventListener('click', () => mostrarPestana(p));
+    });
+
+    // Llena la pantalla de sitios oficiales desde la lista SITIOS.
+    function construirSitios() {
+      const contenedor = $('listaSitios');
+      const categorias = [...new Set(SITIOS.map(s => s.categoria))];
+
+      categorias.forEach(cat => {
+        const grupo = crear('div', 'grupo');
+        grupo.append(crear('h3', null, cat));
+        const tarjetas = crear('div', 'tarjetas');
+
+        SITIOS.filter(s => s.categoria === cat).forEach(s => {
+          const tarjeta = crear('div', 'sitio');
+          tarjeta.append(crear('strong', null, s.nombre));
+          tarjeta.append(crear('div', 'dominio', s.dominios[0]));
+
+          const botones = crear('div', 'botones');
+          const btnCopia = crear('button', 'boton secundario', 'Copiar enlace');
+          btnCopia.type = 'button';
+          btnCopia.addEventListener('click', async () => {
+            const ok = await copiarTexto(s.url);
+            btnCopia.textContent = ok ? '✅ Copiado' : 'No se pudo';
+            setTimeout(() => { btnCopia.textContent = 'Copiar enlace'; }, 1800);
+          });
+
+          const abrir = crear('a', 'boton', 'Abrir');
+          abrir.href = s.url;
+          abrir.target = '_blank';
+          abrir.rel = 'noopener noreferrer';
+
+          botones.append(btnCopia, abrir);
+          tarjeta.append(botones);
+          tarjetas.append(tarjeta);
+        });
+
+        grupo.append(tarjetas);
+        contenedor.append(grupo);
+      });
+    }
+
+    // Botones de ejemplo: llenan el cuadro y analizan de inmediato.
+    document.querySelectorAll('[data-ejemplo]').forEach(b => {
+      b.addEventListener('click', () => {
+        $('entrada').value = EJEMPLOS[b.dataset.ejemplo];
+        analizar();
+      });
+    });
+
+    $('btnAnalizar').addEventListener('click', analizar);
+
+    $('btnLimpiar').addEventListener('click', () => {
+      $('entrada').value = '';
+      $('resultado').hidden = true;
+      $('entrada').focus();
+    });
+
+
+    /* ---------- 3.9 · ARRANQUE ----------------------------------- */
+    construirSitios();
+    mostrarPestana('analizar');
+  </script>
+</body>
+</html>
